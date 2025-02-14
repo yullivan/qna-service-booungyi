@@ -1,12 +1,41 @@
 package qna.domain;
 
+import jakarta.persistence.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@EntityListeners(AuditingEntityListener.class)
+@Entity
 public class Question {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // 자동 생성 전략을 사용하겠다는 어노테이션
     private Long id;
+
+    @Column(nullable = false, length = 100)
     private String title;
+
+    @Column(nullable = true)
     private String contents;
-    private Long writerId;
+
+    @Column(nullable = false)
     private boolean deleted = false;
 
+    @CreatedDate
+    private LocalDateTime createAT;
+
+    @LastModifiedDate
+    private LocalDateTime updateAT;
+
+    @ManyToOne
+    @JoinColumn(nullable = false)
+    private User writer;
+
+    @OneToMany
+    private List<Answer> answer;
     public Question(String title, String contents) {
         this(null, title, contents);
     }
@@ -18,12 +47,12 @@ public class Question {
     }
 
     public Question writeBy(User writer) {
-        this.writerId = writer.getId();
+        this.writer = writer;
         return this;
     }
 
     public boolean isOwner(User writer) {
-        return this.writerId.equals(writer.getId());
+        return this.writer.getId().equals(writer.getId());
     }
 
     public void addAnswer(Answer answer) {
@@ -34,32 +63,12 @@ public class Question {
         return id;
     }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
-
     public String getTitle() {
         return title;
     }
 
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public String getContents() {
-        return contents;
-    }
-
-    public void setContents(String contents) {
-        this.contents = contents;
-    }
-
     public Long getWriterId() {
-        return writerId;
-    }
-
-    public void setWriterId(Long writerId) {
-        this.writerId = writerId;
+        return writer.getId();
     }
 
     public boolean isDeleted() {
@@ -76,7 +85,7 @@ public class Question {
                 "id=" + id +
                 ", title='" + title + '\'' +
                 ", contents='" + contents + '\'' +
-                ", writerId=" + writerId +
+                ", writer=" + writer +
                 ", deleted=" + deleted +
                 '}';
     }
