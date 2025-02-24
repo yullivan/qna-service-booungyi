@@ -1,19 +1,35 @@
 package qna.domain;
 
+import jakarta.persistence.*;
+import org.springframework.data.annotation.LastModifiedDate;
+
 import java.time.LocalDateTime;
 import java.util.Objects;
-
+@Entity
 public class DeleteHistory {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // 자동 생성 전략을 사용하겠다는 어노테이션
     private Long id;
+
+    @Enumerated(EnumType.STRING)
     private ContentType contentType;
+
+    @Column(nullable = true)
     private Long contentId;
-    private Long deletedById;
+
+
+    @LastModifiedDate
+    @Column(nullable = false)
     private LocalDateTime createDate = LocalDateTime.now();
 
-    public DeleteHistory(ContentType contentType, Long contentId, Long deletedById, LocalDateTime createDate) {
+    @ManyToOne
+    @JoinColumn(name = "deleted_by_id", nullable = false)
+    private User user;
+
+    public DeleteHistory(ContentType contentType, Long contentId, User deletedById, LocalDateTime createDate) {
         this.contentType = contentType;
         this.contentId = contentId;
-        this.deletedById = deletedById;
+        this.user = deletedById;
         this.createDate = createDate;
     }
 
@@ -24,13 +40,12 @@ public class DeleteHistory {
         DeleteHistory that = (DeleteHistory) o;
         return Objects.equals(id, that.id) &&
                 contentType == that.contentType &&
-                Objects.equals(contentId, that.contentId) &&
-                Objects.equals(deletedById, that.deletedById);
+                Objects.equals(contentId, that.contentId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, contentType, contentId, deletedById);
+        return Objects.hash(id, contentType, contentId);
     }
 
     @Override
@@ -39,8 +54,27 @@ public class DeleteHistory {
                 "id=" + id +
                 ", contentType=" + contentType +
                 ", contentId=" + contentId +
-                ", deletedById=" + deletedById +
                 ", createDate=" + createDate +
                 '}';
+    }
+
+    public ContentType getContentType() {
+        return contentType;
+    }
+
+    public Long getContentId() {
+        return contentId;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public LocalDateTime getCreateDate() {
+        return createDate;
+    }
+
+    public User getUser() {
+        return user;
     }
 }

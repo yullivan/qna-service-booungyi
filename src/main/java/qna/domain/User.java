@@ -1,17 +1,57 @@
 package qna.domain;
 
+import jakarta.persistence.*;
+import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedBy;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import qna.exception.UnAuthorizedException;
-
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Objects;
 
+@EntityListeners(AuditingEntityListener.class)
+@Entity
+@Table(name = "users")
 public class User {
     public static final GuestUser GUEST_USER = new GuestUser();
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // 자동 생성 전략을 사용하겠다는 어노테이션
     private Long id;
+
+    @Column(nullable = false, length = 20, unique = true)
     private String userId;
+
+    @Column(nullable = false)
     private String password;
+
+    @Column(nullable = false)
     private String name;
+
+    @Column(nullable = true)
     private String email;
+
+    @CreatedDate //
+    @Column (nullable = false)
+    private LocalDateTime createAT;
+
+    @LastModifiedDate
+    @Column (nullable = false)
+    private LocalDateTime updateAT;
+
+    @OneToMany  // 1:N 관계
+    @JoinColumn(name = "deletedById", nullable = false)
+    private List<DeleteHistory> deleteHistory;
+
+    @OneToMany  // 1:N 관계
+    @JoinColumn(name = "questionId", nullable = false)
+    private List<Question> question;
+
+    @OneToMany  // 1:N 관계
+    @JoinColumn(name = "answerId", nullable = false)
+    private List<Answer> answer;
 
     private User() {
     }

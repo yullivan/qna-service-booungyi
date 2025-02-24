@@ -1,19 +1,55 @@
 package qna.domain;
 
+import jakarta.persistence.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import org.springframework.transaction.annotation.Transactional;
 import qna.exception.NotFoundException;
 import qna.exception.UnAuthorizedException;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
+@EntityListeners(AuditingEntityListener.class)
+@Entity
+@Table(name = "answer")
 public class Answer {
+    @Id
+    @GeneratedValue (strategy = GenerationType.IDENTITY) // 자동 생성 전략을 사용하겠다는 어노테이션
     private Long id;
-    private Long writerId;
-    private Long questionId;
+
+    @Column(nullable = true)
     private String contents;
+
+    @Column(nullable = false)
     private boolean deleted = false;
 
-    public Answer(User writer, Question question, String contents) {
-        this(null, writer, question, contents);
+    @CreatedDate //
+    @Column(nullable = false)
+    private LocalDateTime createAT;
+
+    @LastModifiedDate
+    @Column(nullable = false)
+    private LocalDateTime updateAT;
+
+    @ManyToOne
+    @JoinColumn(nullable = false)
+    Question question;
+
+    @ManyToOne
+    @JoinColumn(nullable = false)
+    private User writer;
+
+
+    public Answer(User writer,
+                  Question question,
+                  String contents) {
+        this.writer = writer;
+        this.question = question;
+        this.contents = contents;
     }
 
     public Answer(Long id, User writer, Question question, String contents) {
@@ -27,67 +63,51 @@ public class Answer {
             throw new NotFoundException();
         }
 
-        this.writerId = writer.getId();
-        this.questionId = question.getId();
+        this.writer = writer;
+        this.question = question;
         this.contents = contents;
     }
 
     public boolean isOwner(User writer) {
-        return this.writerId.equals(writer.getId());
+        return this.writer.getId().equals(writer.getId());
     }
 
     public void toQuestion(Question question) {
-        this.questionId = question.getId();
+        this.question = question;
     }
 
     public Long getId() {
         return id;
     }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public Long getWriterId() {
-        return writerId;
-    }
-
-    public void setWriterId(Long writerId) {
-        this.writerId = writerId;
-    }
-
-    public Long getQuestionId() {
-        return questionId;
-    }
-
-    public void setQuestionId(Long questionId) {
-        this.questionId = questionId;
-    }
-
-    public String getContents() {
-        return contents;
-    }
-
-    public void setContents(String contents) {
-        this.contents = contents;
-    }
-
-    public boolean isDeleted() {
-        return deleted;
+    public User getWriter() {
+        return writer;
     }
 
     public void setDeleted(boolean deleted) {
         this.deleted = deleted;
     }
+    public boolean isDeleted() {
+        return deleted;
+    }
+
+    public DeleteHistory deleteAnswer() {
+        this.setDeleted(true);
+        return new DeleteHistory(
+                        ContentType.ANSWER,
+                        this.id,
+                        this.writer,
+                        LocalDateTime.now());
+    }
 
     @Override
     public String toString() {
         return "Answer{" +
-                "id=" + id +
-                ", writerId=" + writerId +
-                ", questionId=" + questionId +
-                ", contents='" + contents + '\'' +
+                "contents='" + contents + '\'' +
                 ", deleted=" + deleted +
+                ", question=" + question +
+                ", writer=" + writer +
+                ", id=" + id +
                 '}';
     }
 }

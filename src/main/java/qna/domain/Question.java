@@ -1,11 +1,50 @@
 package qna.domain;
 
+import jakarta.persistence.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import org.springframework.transaction.annotation.Transactional;
+import qna.exception.CannotDeleteException;
+import qna.exception.NotFoundException;
+
+import java.io.Writer;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+@EntityListeners(AuditingEntityListener.class)
+@Entity
 public class Question {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // 자동 생성 전략을 사용하겠다는 어노테이션
     private Long id;
+
+    @Column(nullable = false, length = 100)
     private String title;
+
+    @Column(nullable = true)
     private String contents;
-    private Long writerId;
+
+    @Column(nullable = false)
     private boolean deleted = false;
+
+    @CreatedDate
+    private LocalDateTime createAT;
+
+    @LastModifiedDate
+    private LocalDateTime updateAT;
+
+    @ManyToOne
+    @JoinColumn(nullable = false)
+    private User    writer;
+
+    public User getWriter() {
+        return writer;
+    }
+
+    @OneToMany(mappedBy = "question")
+    private List<Answer> answer;
 
     public Question(String title, String contents) {
         this(null, title, contents);
@@ -18,12 +57,12 @@ public class Question {
     }
 
     public Question writeBy(User writer) {
-        this.writerId = writer.getId();
+        this.writer = writer;
         return this;
     }
 
     public boolean isOwner(User writer) {
-        return this.writerId.equals(writer.getId());
+        return this.writer.getId().equals(writer.getId());
     }
 
     public void addAnswer(Answer answer) {
@@ -34,34 +73,6 @@ public class Question {
         return id;
     }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public String getContents() {
-        return contents;
-    }
-
-    public void setContents(String contents) {
-        this.contents = contents;
-    }
-
-    public Long getWriterId() {
-        return writerId;
-    }
-
-    public void setWriterId(Long writerId) {
-        this.writerId = writerId;
-    }
-
     public boolean isDeleted() {
         return deleted;
     }
@@ -69,14 +80,39 @@ public class Question {
     public void setDeleted(boolean deleted) {
         this.deleted = deleted;
     }
-
+    //todo 작성자의 아이디로 질문을 찾은뒤에 답변도 함께 삭제진행
+    public DeleteHistory deletedQuestion(List<Answer> answers,User writer) {
+        if (!isOwner(writer)) {
+            throw new IllegalArgumentException("질문을 삭제할 권한이 없습니다.");
+        }
+        if (answers==null || answers.isEmpty()) {
+            setDeleted(true);
+            return new DeleteHistory(
+                    ContentType.QUESTION,
+                    getId(),
+                    writer,
+                    LocalDateTime.now());
+        } else {
+            for (Answer answer : answers) {
+                if (!answer.isOwner(writer)) {
+                    throw new IllegalArgumentException("다른 사람이 쓴 답변이 있어 삭제할 수 없습니다.");
+                }
+            }
+            setDeleted(true);
+          return new DeleteHistory(
+                    ContentType.QUESTION,
+                    getId(),
+                    writer,
+                    LocalDateTime.now());
+        }
+    }
     @Override
     public String toString() {
         return "Question{" +
                 "id=" + id +
                 ", title='" + title + '\'' +
                 ", contents='" + contents + '\'' +
-                ", writerId=" + writerId +
+                ", writer=" + writer +
                 ", deleted=" + deleted +
                 '}';
     }
