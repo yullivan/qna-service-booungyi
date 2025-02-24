@@ -37,7 +37,7 @@ public class Question {
 
     @ManyToOne
     @JoinColumn(nullable = false)
-    private User writer;
+    private User    writer;
 
     public User getWriter() {
         return writer;
